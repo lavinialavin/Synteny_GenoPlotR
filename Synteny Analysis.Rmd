@@ -1,0 +1,438 @@
+---
+title: "Synteny analysis (genoPlotR)"
+author: "Lavinia_Lavin"
+date: "6/2/2021"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+Analisis de microsintenia usando los resultados de alineamiento progresivo com Mauve (2 archivos: .backbone y .guide_tree ; ubicar a ambos en el directorio)
+1.Instalar paquetes
+```{r, eval=FALSE}
+install.packages("ade4")
+install.packages("grid")
+install.packages("genoPlotR")
+```
+2.Llamar paquetes de la libreria
+```{r}
+library(ade4)
+library(grid)
+library(genoPlotR)
+```
+3.Llamar archivo -directorio (.backbone)
+```{r}
+bone_file <- "/Users/lavinialavin/Desktop/Ejemplos R/Genomica/alin_wc2.backbone"
+```
+4. Determinar genoma de referencia (genoma mas largo) 
+```{r}
+bbone <- read_mauve_backbone(bone_file, ref=10, gene_type = "side_blocks", header = TRUE, filter_low = 0, common_blocks_only = FALSE)
+```
+5. Etiquetar DNA_SEGS extraidos de Mauve, deben corresponder con las etiquetas de guide.tree
+```{r}
+names <- c("B_bas", "M_acr", "M_alb", "M_ani", "M_bru", "M_gui", "M_maj", "M_ril", "M_rob", "N_cra", "T_ree")
+names(bbone$dna_segs)<-names
+```
+attach objetos al archivo bbone
+```{r}
+dna_segs<-(bbone$dna_segs)
+comparisons<-(bbone$comparisons)
+```
+6. calcular longitudes de los genoma
+```{r}
+for (i in 1:length(bbone$comparisons)){
+  cmp <- bbone$comparisons[[i]]
+  bbone$comparisons[[i]]$length <-
+    abs(cmp$end1 - cmp$start1) + abs(cmp$end2 - cmp$start2)
+}
+```
+Plot inicial comparaciones sub-genomicas
+```{r}
+plot_gene_map(dna_segs=bbone$dna_segs, comparisons=bbone$comparisons)
+```
+Plot
+```{r}
+plot_gene_map(dna_segs=bbone$dna_segs,
+              comparisons=bbone$comparisons,
+              global_color_scheme=c("length", "increasing", "red_blue", 0.7),
+              override_color_schemes=TRUE, main="Sub-genomic region (WC2) Block localization  ", scale=TRUE)
+```
+Reconstruccion filogenetica a partir del analisis con guide.tree de Mauve
+```{r}
+tree<- "/Users/lavinialavin/Desktop/Ejemplos R/Genomica/alin_wc2.guidetree"
+```
+Copiar del archivo .guide_tree las longitudes calculadas, cada secuencia corresponde al orden del input en Mauve (i.e. seq10 = N_cra), de esta manera se nombran las "hojas"del arbol (leaves)
+```{r}
+tree_demo <- newick2phylog("((N_cra:0.317301,M_maj:0.351526):0.0050258,((((((((M_rob:0.015631,M_ani:0.017281):0.0569382,M_gui:0.0837367):0.0612306,M_bru:0.146463):0.0293783,M_acr:0.197289):0.070429,M_ril:0.276706):0.0499356,M_alb:0.276091):0.0251448,B_bas:0.292344):0.00529566,T_ree:0.141772):0.141772);")
+names <- c("N_cra", "M_maj", "M_rob", "M_ani", "M_gui", "M_bru", "M_acr", "M_ril", "M_alb", "B_bas", "T_ree")
+names(dna_segs) <- names
+```
+Etiquetar seq-y hojas correspondiente a las etiquetas iniciales de bbone
+```{r, eval=FALSE}
+tree_str <- readLines(tree_demo)
+for (i in 1:length(names)){   tree_str <- gsub(paste("seq", i, sep=""), names[i], tree_str) }
+tree <- newick2phylog(tree_demo)
+```
+Plot del arbol filogenetico, se incluyen los LCBs
+```{r, eval=FALSE}
+plot_gene_map(dna_segs=bbone$dna_segs, comparisons=bbone$comparisons, tree=tree_demo)
+```
+Anotar xlims (parametros dependientes de la longitud sub-genomica analizada, anotacion dependiente de las seq-dadas en el scrip tree.guide de Mauve)
+```{r, eval=FALSE}
+xlims <- list(c( 10000, 20000, 30000, 49000),
+              c(1000, 20000, 30000, 49000 ),
+              c( 1000,20000,  30000, 49000),
+              c(10000,  20000, 30000,  49000),
+              c(10000, 20000, 30000, 49000),
+              c( 10000,   20000, 30000,  49000),
+              c( 10000, 20000, 30000, 49000),
+              c( 10000, 20000, 30000, 49000),
+              c(1000,20000, 30000,  49000 ),
+              c(10000, 20000, 30000, 49000),
+              c(10000, 20000, 30000, 49000))
+```
+Plot de genes comparados y genoma completo. Plot 2 incluye arbol filogenetico
+```{r}
+plot_gene_map(dna_segs, comparisons = NULL,
+              tree = NULL,
+              tree_width = NULL,
+              tree_branch_labels_cex = NULL,
+              tree_scale = FALSE,
+              legend = NULL,
+              annotations = NULL,
+              annotation_height = 1,
+              annotation_cex = 0.8,
+              seg_plots=NULL, # user-defined plots seg_plot_height=3, # height of plots (in lines) seg_plot_height_unit="lines", # unit of preceding seg_plot_yaxis=3, # if non-null or non false, ticks seg_plot_yaxis_cex=scale_cex,
+              xlims = NULL,
+              offsets = NULL,
+              minimum_gap_size = 0.05,
+              fixed_gap_length = FALSE,
+              limit_to_longest_dna_seg = TRUE,
+              main = NULL,
+              main_pos = "centre",
+              dna_seg_labels = NULL,
+              dna_seg_label_cex=1,
+              dna_seg_label_col="black",
+              gene_type = NULL,
+              arrow_head_len = 200,
+              dna_seg_line = TRUE,
+              scale = TRUE,
+              n_scale_ticks=7,
+              scale_cex=0.6,
+              global_color_scheme = c("auto", "auto", "blue_red", 0.5), override_color_schemes = FALSE,
+              plot_new=TRUE,
+              debug = 0)
+
+
+plot_gene_map(dna_segs=dna_segs, comparisons=comparisons, tree = tree_demo)
+
+```
+Calculo para diferenciar bloques dependiendo de la ubicacion putativa del gen de interes
+```{r}
+df1 <- data.frame(name=c("feat1", "feat2", "feat3"), start=c(18000, 22000, 24000),
+                  end=c(20000, 23000, 30000), strand=c(-1, 1, -1), col=c("red", "pink", "grey"))
+dna_seg1 <- dna_seg(df1)
+str(dna_seg1)
+df2 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(15000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, 1, -1), col=c("blue", "grey", "grey"))
+dna_seg2 <- dna_seg(df2)
+str(dna_seg2)
+df3 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("blue", 3))
+
+dna_seg3 <- dna_seg(df3)
+str(dna_seg3)
+df4 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("green", 3))
+
+dna_seg4 <- dna_seg(df4)
+str(dna_seg4)
+df5 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("yellow", 3))
+
+dna_seg5 <- dna_seg(df5)
+str(dna_seg5)
+df6 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(5000, 10000, 24000), end=c(20000, 23000, 25000), strand=c(-1, -1, 1), col=rep("cyan", 3))
+
+dna_seg6 <- dna_seg(df6)
+str(dna_seg6)
+df7 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(20000, 22000, 30000), end=c(25000, 30000, 40000), strand=c(-1, -1, 1), col=rep("pink", 3))
+
+dna_seg7 <- dna_seg(df7)
+str(dna_seg7)
+
+df8 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("tan", 3))
+dna_seg8 <- dna_seg(df8)
+str(dna_seg8)
+
+df9 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("violet", 3))
+dna_seg9 <- dna_seg(df9)
+str(dna_seg9)
+
+df10 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("green4", 3))
+dna_seg10 <- dna_seg(df10)
+str(dna_seg10)
+df11 <- data.frame(name=c("feat1", "feat2", "feat3"),
+                  start=c(18000, 22000, 24000), end=c(20000, 23000, 30000), strand=c(-1, -1, 1), col=rep("purple", 3))
+dna_seg11 <- dna_seg(df11)
+str(dna_seg11)
+dna_segs <- list(dna_seg1, dna_seg2, dna_seg3, dna_seg4, dna_seg5, dna_seg6, dna_seg7, dna_seg8, dna_seg9, dna_seg10, dna_seg11)
+
+```
+Comparaciones generadas por Mauve, analisis entre bloques (dna_segs) ( los analisis son uno menos que el numero de dna_segs)
+```{r, eval=FALSE}
+df4 <- data.frame(start1=dna_seg1$start, end1=dna_seg1$end,
+                  start2=dna_seg2$start,
+                  end2=dna_seg2$end)
+comparison1 <- comparison(df4)
+df5 <- data.frame(start1=c(20000, 38000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison2 <- comparison(df5)
+
+comparisons <- list(comparison1, comparison2)
+df5 <- data.frame(start1=c(20000, 38000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison2 <- comparison(df5)
+
+df9 <- data.frame(start1=c(20000, 38000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison4 <- comparison(df9)
+
+df3 <- data.frame(start1=c(10000, 20000), end1=c(15000, 30000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison5 <- comparison(df3)
+
+df2 <- data.frame(start1=c(20000, 18000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison6 <- comparison(df2)
+
+
+df2 <- data.frame(start1=c(20000, 18000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison6 <- comparison(df2)
+
+
+
+df7 <- data.frame(start1=c(30000, 34000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+
+comparison3 <- comparison(df7)
+
+df10 <- data.frame(start1=c(20000, 18000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison8 <- comparison(df10)
+
+comparison9 <- comparison(df11)
+df11 <- data.frame(start1=c(20000, 18000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison9 <- comparison(df11)
+
+comparison10 <- comparison(df6)
+df6 <- data.frame(start1=c(5000, 10000), end1=c(10000, 20000),
+                   start2=c(18000, 20000),
+                   end2=c(20000, 30000),
+                   col=c("#67000D", "#08306B"))
+comparison10 <- comparison(df6)
+
+comparison7 <- comparison(df1)
+df1 <- data.frame(start1=c(20000, 18000), end1=c(35000, 41000),
+                  start2=c(18000, 20000),
+                  end2=c(20000, 30000),
+                  col=c("#67000D", "#08306B"))
+comparison7 <- comparison(df1)
+```
+Se genera un nuevo objeto que acopla a todos los analisis comparativos entre los lcbs. 
+```{r, eval=FALSE}
+comparisons <- list(comparison1, comparison2, comparison3, comparison4, comparison5, comparison6, comparison7, comparison8, comparison9, comparison10)
+
+comparisons[[1]]$col <- apply_color_scheme(c(0.6, 0.5, 0.4), "red")
+```
+Plot genomas completos donde se ilustran los LCBs como flechas, sin etiquetas
+```{r}
+plot_gene_map(dna_segs=dna_segs, comparisons=comparisons)
+```
+Plot que inclye comparaciones con nombres y arbol,names=guide_tree
+```{r}
+names(dna_segs)<- names
+names(dna_segs=dna_segs) <-names
+names(bbone$dna_segs) <- names
+
+mid_pos <- middle(dna_segs[[1]])
+annot <- annotation(x1=c(mid_pos[1], dna_segs[[1]]$end[2]),
+                    x2=c(NA, dna_segs[[1]]$end[11]), text=c(dna_segs[[1]]$name[1], "region1"), rot=c(30, 0), col=c("grey", "black"))
+
+plot_gene_map(bbone$dna_segs, comparisons=comparisons,
+              annotations=annot, annotation_height=1.3, tree=tree_demo, tree_width=2, main="Comparison of Homologous Segments in 11 sub-genomic regions")
+```
+Deteminar xlims en caso de delimitar al tamaño del contig de cada especie que contiene el gen de interes
+```{r}
+xlims <- list(c( 1,  49000),
+              c(1, 49000 ),
+              c( 1, 49000),
+              c(1,  49000),
+              c(1, 49000),
+              c(1, 49000),
+              c(1, 49000),
+              c(1, 49000),
+              c(1, 49000),
+              c(1, 49000),
+              c( 1, 49000))
+annots <- lapply(bbone$dna_segs, function(x){
+  mid <- middle(x)
+  annot <- annotation(x1=mid, text=x$name, rot=13)
+  idx <- grep("^[^B]", annot$text, perl=TRUE)
+  annot[idx[idx %% 4 == 0],]}) 
+```
+Plot sin anotaciones, incluyen los LCBs identificados por mauve, ademas del analisis de la region subgenomica completa (50kbp) y la reconstruccion filogenetica 
+```{r}
+plot_gene_map(bbone$dna_segs, bbone$comparisons, tree=tree_demo,
+              xlims=xlims,
+              limit_to_longest_dna_seg=FALSE,
+              dna_seg_scale=TRUE, scale=TRUE,
+              main="Comparison of subgenomic segments centered on wc2")
+```
+Plot con anotaciones de los bloques identificados por Mauve
+```{r}
+plot_gene_map(bbone$dna_segs, bbone$comparisons, tree=tree_demo, annotations =  annots,
+              xlims=xlims,
+              limit_to_longest_dna_seg=FALSE,
+              dna_seg_scale=TRUE, scale=TRUE,
+              main="Comparison of homologous segments")
+
+```
+Plot que incluye al arbol filogenetico; solo se proyectan las flechas que delimitan los bloques calculados 
+```{r}
+ plot_gene_map(dna_segs=dna_segs, comparisons=comparisons,
+                  annotations=annot, annotation_height=1.3,
+                tree=tree_demo, tree_width=2,
+                main="Comparison of subgenomic regions centered on wc2")
+```
+Plot arbol, lcbs y comparaciones (50kbp)
+```{r}
+plot_gene_map(bbone$dna_segs, bbone$comparisons, tree=tree_demo,
+          xlims=xlims,
+     limit_to_longest_dna_seg=FALSE,
+         dna_seg_scale=TRUE, scale=TRUE,
+              main="Comparison of homologous segments centered on wc2 in 11 filamentous fungi")
+```
+Plot basal flechas (lcbs) delimitados a 10kbp sin comparaciones
+```{r}
+plot_gene_map(dna_segs,
+              comparisons = NULL,
+              tree = NULL,
+              tree_width = NULL,
+              tree_branch_labels_cex = NULL,
+              tree_scale = FALSE,
+              legend = NULL,
+              annotations = NULL,
+              annotation_height = 1,
+              annotation_cex = 0.8,
+              seg_plots=NULL,    # user-defined plots
+              seg_plot_height=3, # height of plots (in lines)
+              seg_plot_height_unit="lines", # unit of preceding
+              seg_plot_yaxis=3, # if non-null or non false, ticks
+              seg_plot_yaxis_cex=scale_cex,
+              xlims = NULL,
+              offsets = NULL,
+              minimum_gap_size = 0.05,
+              fixed_gap_length = FALSE,
+              limit_to_longest_dna_seg = TRUE,
+              main = NULL,
+              main_pos = "centre",
+              dna_seg_labels = NULL,
+              dna_seg_label_cex=1,
+              dna_seg_label_col="black",
+              gene_type = NULL,
+              arrow_head_len = 200,
+              dna_seg_line = TRUE,
+              scale = TRUE,
+              dna_seg_scale =FALSE,
+              n_scale_ticks=7,
+              scale_cex=0.6,
+              global_color_scheme = c("auto", "auto", "blue_red", 0.5),
+              override_color_schemes = FALSE,
+              plot_new=TRUE,
+              degub=0)
+```
+Plot arbol funcional, incluye LCBs y comparaciones
+```{r}
+plot_gene_map(bbone$dna_segs, bbone$comparisons,
+              annotations=annot, annotation_height=1.3,
+              tree=tree_demo, tree_width=2,
+              main="Comparison of homologous segments centered on WC2")
+
+```
+Determinar region para facilitar la ubicacion del gen de interes (depende de la misma ubicacion en el contig), acotar a menos de 50kbp- Xlims para 11 genomas 50kbp
+```{r}
+xlims <- list(c(20000,  30000),
+              c(10000, 20000 ),
+              c( 20000, 30000),
+              c(20000,  30000),
+              c(20000,  30000),
+              c(10000,  25000),
+              c(30000,  41000),
+              c(20000,  30000),
+              c(20000, 30000),
+              c( 20000, 30000),
+              c( 20000, 30000))
+plot_gene_map(bbone$dna_segs, bbone$comparisons, tree=tree_demo,
+              xlims=xlims,
+              limit_to_longest_dna_seg=TRUE,
+              dna_seg_scale=TRUE, scale=TRUE,
+              main="Comparison of homologous segments centered on wc2")
+```
+cambiar dna_segs=dna_segs a bbone$dna_segs=dena_segs o  bbone$dna_segs cuando ocurra: error: no tree permutation
+ plot para identificar los lcbs y comparaciones entre anclas
+```{r}
+plot_gene_map(dna_segs=dna_segs, bbone$comparisons, tree=tree_demo, tree_width=2, xlims=xlims,limit_to_longest_dna_seg=FALSE,dna_seg_scale=TRUE, scale = TRUE, main = "Subgenomic comparisons & block identification (wc2)")
+
+```
+Se calculan las anotaciones de los bloques, incluir en el plot de ser necesario
+```{r}
+annots <- lapply(bbone$dna_segs, function(x){
+  mid <- middle(x)
+  annot <- annotation(x1=mid, text=x$name, rot=30)
+  idx <- grep("^[^B]", annot$text, perl=TRUE)
+  annot[idx[idx %% 4 == 0],]
+})
+```
+Plot flechas & arbol, delimitandose xlims a 10kbps
+```{r}
+plot_gene_map(dna_segs=dna_segs, comparison=comparisons, tree=tree_demo,
+              xlims=xlims, tree_width=3,
+              limit_to_longest_dna_seg=TRUE,
+              dna_seg_scale=TRUE, scale=FALSE,
+              main="Comparison of homologous segments in filamentous fungi")
+```
+Plot con flechas y comparaciones (coloracion solida en comparaciones) entre los LCBs
+```{r}
+plot_gene_map(dna_segs=dna_segs, comparisons=comparisons, tree=tree_demo, main = "Comparisons of sub-genomic region in 11 filamentous fungi")
+```
+Plot flechas y arbol, comparaciones entre los LCBs 
+```{r}
+plot_gene_map(dna_segs=dna_segs, comparisons=bbone$comparisons, tree=tree_demo, tree_width = 3, global_color_scheme = c("length", "increasing", "red_blue", 0.7), override_color_schemes = FALSE, dna_seg_scale=TRUE, limit_to_longest_dna_seg = TRUE, scale = FALSE, main="LCBs and comparisons of subgenomic regions centered in wc2 gene")
+```
+Para cambiar el tamaño del arbol: tree_width=2 ;para añadir la escala de la region subgenomica: scale=TRUE
