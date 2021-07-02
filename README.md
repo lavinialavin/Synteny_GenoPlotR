@@ -5,7 +5,8 @@ La regiones sub-genomicas se obtuvieron de FungiEnsmbl en formato .gb, posterior
 La finalidad de este análisis es comparar la region sub-genomica donde podemos encontrar al gen de interés (en este caso WC2), ademas se pueden observar las comparaciones entre las regiones similares conservadas (denominadas Bloques Colinearmente Alineados (LCBs)), renombrados como dna_segs.
 El manual se encuentra en formato .pdf  (español).
 
+[Manual:Synteny analysis (genoPlotR).pdf](https://github.com/lavinialavin/Synteny_GenoPlotR/files/6757330/Manual.Synteny.analysis.genoPlotR.pdf)
 
 
+(Ingles) [Microsynteny analysis: GenoPlotR_ingles.pdf](https://github.com/lavinialavin/Synteny_GenoPlotR/files/6757331/Microsynteny.analysis.GenoPlotR_ingles.pdf)
 
-[Manual:Synteny analysis (genoPlotR).pdf](https://github.com/lavinialavin/Synteny_GenoPlotR/files/6587943/Manual.Synteny.analysis.genoPlotR.pdf)
